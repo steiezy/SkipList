@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.stez.utils";
+option java_outer_classname = "SkipListProto";
+
+package org.stez.server;
+
+// 服务定义
+service SkipListService {
+  // 获取最优节点方法
+  rpc GetOptimalNode(GetOptimalNodeRequest) returns (OptimalNodeResponse) {}
+
+  // 更新节点状态方法
+  rpc UpdateNodeStatus(UpdateNodeStatusRequest) returns (UpdateNodeStatusResponse) {}
+}
+
+// 请求消息：获取最优节点
+message GetOptimalNodeRequest {
+  int32 min_score = 1; // 最低分数
+}
+
+// 响应消息：获取最优节点
+message OptimalNodeResponse {
+  string node_name = 1;  // 最优节点名称
+}
+
+// 请求消息：更新节点状态
+message UpdateNodeStatusRequest {
+  string node_name = 1;  // 节点名称
+  int32 score = 2;        // 评分
+}
+
+// 响应消息：更新节点状态
+message UpdateNodeStatusResponse {
+  bool success = 1;       // 操作是否成功
+}
