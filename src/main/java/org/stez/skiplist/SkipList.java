@@ -4,16 +4,22 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.LongAdder;
 
-
+/*
+ *  TODO: cold node(a node before the same score's index)
+ *   possible solution: Nodes with the same score only maintain one index,
+ *   and when deleting nodes, check if there are nodes with the same score.
+ *   If there are, inherit the index of the deleted node to the next node with the same score.
+ * */
 public class SkipList {
     static Comparator<Integer> comparator = (a, b) -> Integer.compare(b, a);
 
     //to avoid another Indexes
-    private final HashMap<String, Integer> ScoreMap = new HashMap<>();
+    private final ConcurrentHashMap<String, Integer> ScoreMap = new ConcurrentHashMap<>();
     private transient Index head;
 
     public void printTree() {
@@ -29,7 +35,7 @@ public class SkipList {
             }
             System.out.print("base list:");
             Node base = h.node;
-            for (Node n = base.next; n != null; n = n.next) {
+            for (Node n = base; n != null; n = n.next) {
                 System.out.print(n.score + " " + n.name + " | ");
             }
             System.out.println();
@@ -157,7 +163,11 @@ public class SkipList {
             throw new NullPointerException();
         //serial update
         Integer prevScore = ScoreMap.get(nodeName);
-        if (prevScore != null) doRemove(nodeName, prevScore);
+        if (prevScore != null){
+            if (prevScore == score) {
+                return true;
+            }else doRemove(nodeName, prevScore);
+        }
         doPut(score, nodeName);
         ScoreMap.put(nodeName, score);
 
@@ -215,15 +225,23 @@ public class SkipList {
                     } else if ((c = cpr(score, k)) > 0)
                         b = n;
                     else if (c == 0) {
+                        int cmp;
                         while (n != null && c == 0) { // Traverse nodes with the same score
-                            if (name.equals(n.name))
-                                return v;
-                            b = n;
-                            n = n.next;
-                            if (n != null) {
-                                k = n.score;
-                                c = cpr(score, k);
-                            } else c = -1;//end of list
+                            if ((cmp = name.compareTo(n.name)) > 0) { // avoid duplicate names
+                                b = n; // move to the next node
+                                n = n.next;
+                                if (n != null) {
+                                    k = n.score;
+                                    c = cpr(score, k);
+                                } else {
+                                    c = -1; // end of list
+                                }
+                            } else if (cmp == 0) {
+                                return v; // name already exists
+                            } else {
+                                c = -1;
+                                break; // insert here since name is smaller
+                            }
                         }
                     }
 
@@ -278,9 +296,7 @@ public class SkipList {
                     } else if ((c = cpr(key, k)) > 0) {
                         q = r;
                     } else if (c == 0) {
-                        //temporary don't add to avoid index chaos
-                        //possible solution:
-                        //passing the index to the next same score node when old node is deleted
+                        //don't add to avoid index chaos
                         break;
                     } else {
                         c = -1;
