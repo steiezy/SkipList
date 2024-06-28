@@ -21,11 +21,15 @@ public class SkipListServer {
     private Server server;
 
 
-    private SkipList skipList; // 添加 SkipList 实例
+    private final SkipList skipList; // 添加 SkipList 实例
 
     // 构造函数中初始化 SkipList
+    public SkipListServer(SkipList skipList) {
+        this.skipList = skipList; // TODO:直接加载历史数据
+    }
+
     public SkipListServer() {
-        this.skipList = new SkipList(); // TODO:直接加载历史数据
+        this.skipList = new SkipList();
     }
 
     /**
@@ -34,7 +38,7 @@ public class SkipListServer {
      * @param port
      * @throws IOException
      */
-    private void start(int port) throws IOException {
+    public void start(int port) throws IOException {
         server = ServerBuilder.forPort(port).addService(new SkipListService(skipList)).build().start();
         logger.log(Level.INFO, "服务已经启动,监听端口：" + port);
         Runtime.getRuntime()
@@ -59,7 +63,7 @@ public class SkipListServer {
      *
      * @throws InterruptedException
      */
-    public void blockUnitShutdown() throws InterruptedException {
+    public void blockUntilShutdown() throws InterruptedException {
         if (server != null) {
             server.awaitTermination();
         }
@@ -75,7 +79,7 @@ public class SkipListServer {
     public static void main(String[] args) throws IOException, InterruptedException {
         SkipListServer service = new SkipListServer();
         service.start(SERVER_PORT);
-        service.blockUnitShutdown();
+        service.blockUntilShutdown();
     }
 
     /**
